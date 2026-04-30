@@ -1,0 +1,12 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/run-agent",
+      "schedule": "0 */4 * * *"
+    },
+    {
+      "path": "/api/cron/resolve-trades",
+      "schedule": "0 6 * * *"
+    }
+  ]
+}
