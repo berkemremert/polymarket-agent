@@ -7,26 +7,36 @@ import { PnlChart } from "@/components/dashboard/PnlChart";
 import { ActiveBetsTable } from "@/components/dashboard/ActiveBetsTable";
 import { AiLogsPanel } from "@/components/dashboard/AiLogsPanel";
 import { RunAgentButton } from "@/components/dashboard/RunAgentButton";
+import type { Trade, AiLog } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
   let balance = 0;
   let totalPnl = 0;
+  let allTrades: Trade[] = [];
+  let openTrades: Trade[] = [];
+  let recentLogs: AiLog[] = [];
 
-  const [allTrades, openTrades, recentLogs] = await Promise.all([
-    getTradeHistory(),
-    getOpenTrades(),
-    getRecentLogs(),
-  ]);
+  const dbAvailable = Boolean(process.env.POSTGRES_URL);
+
+  if (dbAvailable) {
+    try {
+      [allTrades, openTrades, recentLogs, totalPnl] = await Promise.all([
+        getTradeHistory(),
+        getOpenTrades(),
+        getRecentLogs(),
+        getTotalPnl(),
+      ]);
+    } catch {
+      // DB query failed — render with empty state
+    }
+  }
 
   try {
-    [balance, totalPnl] = await Promise.all([
-      getWalletBalance(),
-      getTotalPnl(),
-    ]);
+    balance = await getWalletBalance();
   } catch {
-    // Wallet not connected or env vars missing — dashboard still renders
+    // Wallet not connected or env vars missing
   }
 
   const pnlSeries = buildPnlSeries(allTrades);
@@ -45,6 +55,17 @@ export default async function DashboardPage() {
           </div>
           <RunAgentButton />
         </div>
+
+        {!dbAvailable && (
+          <div className="bg-amber-950 border border-amber-800 rounded-xl p-4 text-sm text-amber-300">
+            <strong>Setup required:</strong> Add your{" "}
+            <code className="bg-amber-900 px-1 rounded">POSTGRES_URL</code>,{" "}
+            <code className="bg-amber-900 px-1 rounded">CHATGPT_API_KEY</code>, and{" "}
+            <code className="bg-amber-900 px-1 rounded">POLYGON_PRIVATE_KEY</code>{" "}
+            to <code className="bg-amber-900 px-1 rounded">.env.local</code>, then run{" "}
+            <code className="bg-amber-900 px-1 rounded">npm run db:generate && npm run db:migrate</code>.
+          </div>
+        )}
 
         <WalletCard
           balance={balance}

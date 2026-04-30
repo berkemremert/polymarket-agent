@@ -1,5 +1,5 @@
 "use server";
-import { openai } from "@/lib/openai-client";
+import { getOpenAIClient } from "@/lib/openai-client";
 import { db } from "@/db";
 import { aiLogs } from "@/db/schema";
 import type { Market, AiDecision } from "@/lib/types";
@@ -21,7 +21,7 @@ export async function analyzeMarkets(
   for (const market of marketsToAnalyze) {
     const prompt = buildPrompt(market, walletBalance);
 
-    const completion = await openai.chat.completions.create({
+    const completion = await getOpenAIClient().chat.completions.create({
       model: "gpt-4o",
       response_format: { type: "json_object" },
       messages: [
